@@ -1,7 +1,11 @@
 #! /bin/bash
 # Script to check what machines are reachable with a simple ping in your network
+# TODO: Read host IP address, calculate with network address possible IP addresses
+# of other network devices. Run then the ping loop on all of these address.
+
 function usage() {
     echo "./lan_controller.sh"
+    echo "network of type: 192.168.0.0"
 }
 
 function main() {
@@ -19,4 +23,8 @@ function main() {
 }
 
 # Starting program
-main
+case "$1" in
+    "help") usage;;
+    *) main;;
+esac
+
