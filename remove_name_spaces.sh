@@ -9,8 +9,43 @@
 # usage:  subs_spaces <string>
 # return: string with no spaces
 # example: subs_spaces 'name of file' -> name_of_file
+
 function subs_spaces() {
-    echo $(echo "$1" | tr " " "_")
+    echo $(echo "$@" | tr " " "_")
+}
+
+
+##----------------------------------------
+# Recursively from directory, executes a the function 
+# passed as argument on archive name.
+# usage: all_archives_in_dir <directory> <function>
+# return: nothing
+# example: all_archives_in_dir . echo
+
+function all_archives_in_dir() {
+    if [ $# != 2 ]; then
+        printf "all_archives_in_dir <directory>\n"
+    fi
+    if [ ! -d "$1" ]; then
+        printf "Argument not a directory\n"
+    fi
+    FROM=$(pwd)
+    cd $1
+    ls | while read archive; do
+        if [ -d "${archive}" ]; then
+            aux=$(eval $2 "${archive}")
+            if [ "${aux}" != "${archive}" ]; then 
+                mv "${archive}/" "${aux}/"
+            fi
+            all_archives_in_dir ${archive} $2
+        else
+            aux=$(eval $2 "${archive}")
+            if [ "${aux}" != "${archive}" ]; then 
+                mv "${archive}" "${aux}"
+            fi
+        fi
+    done
+    cd ${FROM}
 }
 
 
@@ -70,6 +105,27 @@ function self_tests() {
     test_print_result ${test_number} ${rc} ${subs} ${expected}
     tests_passed=$((${tests_passed} + ${rc}))
 
+    test_number=5
+    mkdir -p temporal && cd temporal && touch "uno dos tres"
+    mkdir -p temp1 && cd temp1 && touch "cuatro cinco seis"
+    cd .. && mkdir -p temp2 && cd temp2 && touch "siete ocho nueve"
+    cd ../..
+    all_archives_in_dir "temporal" subs_spaces
+    if [ -e "./temporal/uno_dos_tres" ] && \
+    [ -e "./temporal/temp1/cuatro_cinco_seis" ] && \
+    [ -e "./temporal/temp2/siete_ocho_nueve" ]; then
+        rc=1
+    else
+        rc=0
+    fi
+    if [ "${rc}" == 0 ]; then
+        printf "Error at _%d\n" ${test_number}
+    else
+        printf "[%d] Test: passed.\n" ${test_number}
+        tests_passed=$((${tests_passed} + ${rc}))
+    fi
+    rm -rf temporal
+
     printf "\nResult: %d/%d tests passed\n" "${tests_passed}" "${test_number}"
     if [ "${test_number}" != "${tests_passed}" ]; then
         printf "[!!] Errors detected at self_tests function\n"
@@ -78,4 +134,6 @@ function self_tests() {
 
 #####-----------------------
 # Main functionality
+
 self_tests
+#all_archives_in_dir $1 echo
